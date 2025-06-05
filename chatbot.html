@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DLC Chatbot Interface with FAQs</title>
+  <style>
+    /* Container for chatbot */
+    #chatbot {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 350px;
+      max-height: 500px;
+      background: #f0f4ff;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      z-index: 10000;
+    }
+
+    /* Header */
+    #chatbot-header {
+      background: #4a90e2;
+      color: white;
+      padding: 15px;
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+      user-select: none;
+    }
+
+    /* Chat messages container */
+    #chatbot-messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      background: #e6ecff;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Chat bubbles */
+    .chat-message {
+      max-width: 75%;
+      padding: 12px 18px;
+      border-radius: 20px;
+      font-size: 14px;
+      line-height: 1.4;
+      word-wrap: break-word;
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    /* Bot bubble */
+    .bot-message {
+      background: white;
+      align-self: flex-start;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+      border-bottom-left-radius: 0;
+      color: #333;
+    }
+
+    /* User bubble */
+    .user-message {
+      background: #4a90e2;
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 0;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+    }
+
+    /* Input area */
+    #chatbot-input-area {
+      display: flex;
+      border-top: 1px solid #ccc;
+      background: white;
+    }
+
+    #chatbot-input {
+      flex-grow: 1;
+      border: none;
+      padding: 14px 16px;
+      font-size: 15px;
+      outline: none;
+      border-radius: 0 0 0 15px;
+    }
+
+    #chatbot-send-btn {
+      background: #4a90e2;
+      border: none;
+      color: white;
+      padding: 0 22px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 0 0 15px 0;
+      transition: background-color 0.3s ease;
+    }
+
+    #chatbot-send-btn:hover {
+      background: #357abd;
+    }
+
+    /* Scrollbar styling */
+    #chatbot-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    #chatbot-messages::-webkit-scrollbar-thumb {
+      background-color: rgba(0,0,0,0.1);
+      border-radius: 3px;
+    }
+
+    /* Fade in animation */
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(10px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    /* Step-by-step list style */
+    .steps-list {
+      padding-left: 18px;
+      margin: 6px 0 0 0;
+      color: #555;
+    }
+    .steps-list li {
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="chatbot" role="region" aria-label="Digital Literacy Campaign Chatbot">
+    <div id="chatbot-header">DLC Digital Literacy Bot</div>
+    <div id="chatbot-messages" aria-live="polite" aria-atomic="false"></div>
+    <form id="chatbot-input-area" aria-label="Chat input form">
+      <input type="text" id="chatbot-input" autocomplete="off" placeholder="Ask me about WhatsApp, Paytm, Google Maps..." aria-label="Type your question here" required />
+      <button type="submit" id="chatbot-send-btn" aria-label="Send message">Send</button>
+    </form>
+  </div>
+
+  <script>
+    (function () {
+      const messagesContainer = document.getElementById('chatbot-messages');
+      const inputForm = document.getElementById('chatbot-input-area');
+      const inputField = document.getElementById('chatbot-input');
+
+      // Hard-coded FAQ data as JSON
+      const faqs = [
+        {
+          questionKeywords: ["send photo", "whatsapp", "photo"],
+          answerSteps: [
+            "Open WhatsApp and go to the chat where you want to send the photo.",
+            "Tap the attachment icon (paperclip) at the bottom.",
+            "Select 'Gallery' to choose an existing photo or 'Camera' to take a new one.",
+            "Select the photo and tap the send button."
+          ]
+        },
+        {
+          questionKeywords: ["google pay", "what is google pay"],
+          answerSteps: [
+            "Google Pay is a digital wallet app by Google.",
+            "It allows you to send and receive money, pay bills, and shop online securely."
+          ]
+        },
+        {
+          questionKeywords: ["use paytm", "paytm", "how to paytm"],
+          answerSteps: [
+            "Download the Paytm app from Play Store or App Store.",
+            "Create an account or log in.",
+            "Add money to your Paytm wallet or link your bank account.",
+            "Use Paytm to pay bills, recharge mobile, or shop online."
+          ]
+        },
+        {
+          questionKeywords: ["google maps", "use google maps", "how to google maps"],
+          answerSteps: [
+            "Open Google Maps app on your phone or go to maps.google.com.",
+            "Enter your destination in the search bar.",
+            "Choose your mode of transport (car, walking, public transit).",
+            "Follow the step-by-step directions displayed."
+          ]
+        },
+        {
+          questionKeywords: ["send message", "whatsapp", "message"],
+          answerSteps: [
+            "Open WhatsApp and tap the chat of the person you want to message.",
+            "Type your message in the input box at the bottom.",
+            "Tap the send button (paper plane icon)."
+          ]
+        }
+      ];
+
+      const fallbackReply = "Sorry, I didn't understand that. Please ask about WhatsApp, Paytm, Google Maps, or Google Pay.";
+
+      // Add message bubble to chat
+      function addMessage(text, sender = 'bot', isList = false) {
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('chat-message', sender === 'bot' ? 'bot-message' : 'user-message');
+
+        if (isList) {
+          // Create ordered list for step-by-step answers
+          const ol = document.createElement('ol');
+          ol.classList.add('steps-list');
+          text.forEach(step => {
+            const li = document.createElement('li');
+            li.textContent = step;
+            ol.appendChild(li);
+          });
+          msgDiv.appendChild(ol);
+        } else {
+          msgDiv.textContent = text;
+        }
+
+        messagesContainer.appendChild(msgDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+      // Find matching FAQ based on keywords
+      function findFAQ(input) {
+        const lowerInput = input.toLowerCase();
+        for (const faq of faqs) {
+          if (faq.questionKeywords.every(keyword => lowerInput.includes(keyword))) {
+            return faq.answerSteps;
+          }
+        }
+        // If no exact match, try partial keyword match (any keyword)
+        for (const faq of faqs) {
+          if (faq.questionKeywords.some(keyword => lowerInput.includes(keyword))) {
+            return faq.answerSteps;
+          }
+        }
+        return null;
+      }
+
+      // Handle user input and generate bot reply
+      function handleUserInput(text) {
+        addMessage(text, 'user');
+
+        const answerSteps = findFAQ(text);
+        if (answerSteps) {
+          addMessage(answerSteps, 'bot', true);
+        } else {
+          addMessage(fallbackReply, 'bot');
+        }
+      }
+
+      // Event listener for form submit
+      inputForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const userInput = inputField.value.trim();
+        if (!userInput) return;
+
+        handleUserInput(userInput);
+        inputField.value = '';
+        inputField.focus();
+      });
+
+      // Initial greeting from bot
+      function greet() {
+        addMessage("Hello! 👋 I’m your Digital Literacy Bot. Ask me how to use WhatsApp, Paytm, Google Maps, or Google Pay.", 'bot');
+      }
+
+      greet();
+    })();
+  </script>
+</body>
+</html>
